@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Havva Nur'un Mutfağı</title>
+  <link rel="preconnect" href="https://googleapis.com">
+  <link rel="preconnect" href="https://gstatic.com" crossorigin>
+  <link href="https://googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://jsdelivr.net"></script>
+  <style>
+    :root { --bg: #FAF7F2; --card: #FFFFFF; --text: #2D2A26; --muted: #6E685F; --amber: #D97706; --amber-dark: #B45309; --amber-light: #FEF3C7; --border: #E7E5E4; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; line-height: 1.5; }
+    h1, h2, h3 { font-family: 'Playfair Display', serif; }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 16px; width: 100%; }
+    header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; max-width: 1120px; margin: 0 auto; }
+    .logo { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .logo-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--amber); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .logo h1 { font-size: 20px; color: var(--text); }
+    .logo p { font-size: 12px; color: var(--muted); }
+    .btn-primary { background: var(--amber); color: #fff; border: none; padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .hero { background: linear-gradient(135deg, #FFFBEB 0%, #FFEDD5 100%); border: 1px solid #FDE68A; border-radius: 24px; padding: 32px 20px; text-align: center; margin-top: 24px; }
+    .hero h2 { font-size: 28px; margin-bottom: 8px; }
+    .hero p { color: var(--muted); font-size: 14px; max-width: 500px; margin: 0 auto 20px; }
+    .search-box { max-width: 420px; margin: 0 auto 20px; position: relative; }
+    .search-box input { width: 100%; padding: 12px 16px 12px 40px; border-radius: 16px; border: 1px solid var(--border); font-size: 14px; outline: none; background: #fff; }
+    .search-box span { position: absolute; left: 14px; top: 11px; color: var(--muted); }
+    .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .kat-btn { padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: #fff; color: var(--text); cursor: pointer; }
+    .kat-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+    main { flex-grow: 1; padding: 28px 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 24px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; }
+    .card-img-wrap { height: 200px; background: #F5F5F4; position: relative; }
+    .card-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .badge { position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,0.95); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--amber-dark); }
+    .card-body { padding: 18px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .card-title { font-size: 20px; margin-bottom: 6px; }
+    .card-desc { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+    .card-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); border-top: 1px solid #F5F5F4; padding-top: 10px; }
+    .status-box { text-align: center; padding: 48px 20px; background: #fff; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); }
+    .hidden { display: none !important; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+    .modal { background: #fff; border-radius: 24px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; }
+    .modal-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%; border: none; background: #fff; font-weight: bold; cursor: pointer; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .modal-pad { padding: 24px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
+    .form-control { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid #D6D3D1; font-size: 14px; font-family: inherit; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .detay-hero { height: 250px; width: 100%; object-fit: cover; display: block; }
+    .detay-badges { display: flex; gap: 12px; margin: 12px 0 20px; font-size: 13px; color: var(--muted); background: var(--bg); padding: 10px 14px; border-radius: 12px; }
+    .malzeme-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #F5F5F4; font-size: 14px; cursor: pointer; }
+    .malzeme-item input:checked + span { text-decoration: line-through; color: var(--muted); }
+    .adim-item { display: flex; gap: 12px; margin-bottom: 14px; font-size: 14px; }
+    .adim-no { width: 26px; height: 26px; border-radius: 50%; background: var(--amber-light); color: var(--amber-dark); font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    footer { text-align: center; padding: 20px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); background: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="logo" onclick="filtrele('Tümü')">
+        <div class="logo-icon">🍲</div>
+        <div>
+          <h1>Havva Nur'un Mutfağı</h1>
+          <p>Ev yapımı lezzetler ve özel tarifler</p>
+        </div>
+      </div>
+      <button onclick="eklemeModaliAc()" class="btn-primary">+ Tarif Ekle</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h2>Mutfaktan Sofranıza Sevgiyle</h2>
+      <p>Denenmiş ev yemekleri, tam ölçülü tatlılar ve ferahlatıcı içecek tarifleri bir arada.</p>
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="aramaInput" onkeyup="tarifleriCiz()" placeholder="Tarif veya malzeme ara..." />
+      </div>
+      <div class="categories">
+        <button onclick="filtrele('Tümü')" data-kat="Tümü" class="kat-btn active">Tümü</button>
+        <button onclick="filtrele('Ana Yemek')" data-kat="Ana Yemek" class="kat-btn">🍲 Ana Yemek</button>
+        <button onclick="filtrele('Tatlı')" data-kat="Tatlı" class="kat-btn">🍰 Tatlı</button>
+        <button onclick="filtrele('İçecek')" data-kat="İçecek" class="kat-btn">🍹 İçecek</button>
+        <button onclick="filtrele('Hamur İşi & Kahvaltı')" data-kat="Hamur İşi & Kahvaltı" class="kat-btn">🥐 Hamur İşi</button>
+        <button onclick="filtrele('Salata & Meze')" data-kat="Salata & Meze" class="kat-btn">🥗 Salata & Meze</button>
+      </div>
+    </section>
+
+    <main>
+      <div id="yukleniyor" class="status-box">Tarifler yükleniyor...</div>
+      <div id="bosMesaj" class="status-box hidden">
+        <div style="font-size: 36px; margin-bottom: 8px;">👩‍🍳</div>
+        <h3>Henüz bu kategoride tarif yok</h3>
+        <p style="font-size: 13px; margin-top: 4px;">Sağ üstteki "Tarif Ekle" butonundan ilk tarifi ekleyebilirsiniz.</p>
+      </div>
+      <div id="tarifGrid" class="grid"></div>
+    </main>
+  </div>
+
+  <footer>© 2026 Havva Nur'un Mutfağı • Sevgiyle hazırlandı.</footer>
+
+  <div id="detayModal" class="modal-bg hidden" onclick="if(event.target===this) modalKapat('detayModal')">
+    <div class="modal">
+      <button onclick="modalKapat('detayModal')" class="modal-close">✕</button>
+      <div id="detayIcerik"></div>
+    </div>
+  </div>
+
+  <div id="ekleModal" class="modal-bg hidden" onclick="if(event.target===this) modalKapat('ekleModal')">
+    <div class="modal modal-pad">
+      <button onclick="modalKapat('ekleModal')" class="modal-close">✕</button>
+      <h3 style="font-size: 22px; margin-bottom: 16px;">Yeni Tarif Ekle</h3>
+      
+      <div id="sifreEkrani">
+        <p style="font-size: 14px; color: var(--muted); margin-bottom: 12px;">Tarif ekleyebilmek için mutfak şifresini girin:</p>
+        <div class="form-group">
+          <input type="password" id="sifreInput" placeholder="Şifreniz..." class="form-control" />
+        </div>
+        <p id="sifreHata" class="hidden" style="color: #DC2626; font-size: 12px; margin-bottom: 10px;">Hatalı şifre girdiniz.</p>
+        <button onclick="sifreKontrol()" class="btn-primary" style="width: 100%; border-radius: 12px; padding: 12px;">Giriş Yap</button>
+      </div>
+
+      <form id="tarifForm" onsubmit="tarifKaydet(event)" class="hidden">
+        <div class="form-group">
+          <label>Tarif Adı *</label>
+          <input type="text" id="baslik" required placeholder="Örn: Fırında Sütlaç" class="form-control" />
+        </div>
+        <div class="row-2">
+          <div class="form-group">
+            <label>Kategori *</label>
+            <select id="kategori" class="form-control">
+              <option value="Ana Yemek">Ana Yemek</option>
+              <option value="Tatlı">Tatlı</option>
+              <option value="İçecek">İçecek</option>
