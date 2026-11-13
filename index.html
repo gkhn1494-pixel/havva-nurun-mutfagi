@@ -121,3 +121,270 @@
         <div class="form-group">
           <input type="password" id="sifreInput" placeholder="Şifreniz..." class="form-control" onkeyup="if(event.key==='Enter') sifreBak()" />
         </div>
+Kodu dikkatli kullanın.
+<p id="sifreHata" class="hidden" style="color: #DC2626; font-size: 13px; margin-bottom: 10px;">Hatalı şifre girdiniz.</p>
+<button type="button" onclick="sifreBak()" class="btn-primary" style="width: 100%; border-radius: 12px; padding: 12px;">Giriş Yap</button>
+</div>
+<div id="tarifFormAlani" class="hidden">
+<div class="form-group">
+<label>Tarif Adı *</label>
+<input type="text" id="baslik" placeholder="Örn: Fırında Sütlaç" class="form-control" />
+</div>
+<div class="row-2">
+<div class="form-group">
+<label>Kategori </label>
+<select id="kategori" class="form-control">
+<option value="Ana Yemek">Ana Yemek</option>
+<option value="Tatlı">Tatlı</option>
+<option value="İçecek">İçecek</option>
+<option value="Hamur İşi & Kahvaltı">Hamur İşi & Kahvaltı</option>
+<option value="Salata & Meze">Salata & Meze</option>
+</select>
+</div>
+<div class="form-group">
+<label>Yemek Fotoğrafı</label>
+<input type="file" id="resimDosya" accept="image/" class="form-control" style="padding: 7px;" />
+</div>
+</div>
+<div class="row-2">
+<div class="form-group">
+<label>Hazırlama Süresi</label>
+<input type="text" id="sure" placeholder="Örn: 40 dk" class="form-control" />
+</div>
+<div class="form-group">
+<label>Kaç Kişilik</label>
+<input type="text" id="porsiyon" placeholder="Örn: 4-6 Kişilik" class="form-control" />
+</div>
+</div>
+<div class="form-group">
+<label>Malzemeler (Her satıra bir malzeme) *</label>
+<textarea id="malzemeler" rows="4" placeholder="1 litre süt
+1 su bardağı şeker" class="form-control"></textarea>
+</div>
+<div class="form-group">
+<label>Yapılışı (Her adımı yeni satıra yazın) *</label>
+<textarea id="yapilis" rows="5" placeholder="Pirinçleri yıkayıp haşlayın...
+Üzerine sütü ekleyin..." class="form-control"></textarea>
+</div>
+<button type="button" id="kaydetBtn" onclick="tarifKaydet()" class="btn-primary" style="width: 100%; border-radius: 12px; padding: 12px;">Tarifi Yayınla</button>
+</div>
+</div>
+</div>
+<script>
+var PROJE_KODU = "taxdchpglyajqtnbxave";
+var API_URL = "https://" + PROJE_KODU + ".supabase.co";
+var API_KEY = "sb_publishable_yeeY030i2S7FRAqLiAr8qA_xjFINmN4";
+var MUTFAK_SIFRESI = "havva2026";
+var YEDEK_RESIM = "data:image/svg+xml;utf8,<svg xmlns='w3.org' width='600' height='400' viewBox='0 0 600 400'><rect fill='%23FEF3C7' width='600' height='400'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='80'>🍲</text></svg>";
+var tumTarifler = new Array();
+var aktifKategori = "Tümü";
+var girisYapildi = sessionStorage.getItem("mutfak_giris") === "true";
+function ekleAc() {
+document.getElementById("ekleModal").classList.remove("hidden");
+if (girisYapildi) {
+document.getElementById("sifreEkrani").classList.add("hidden");
+document.getElementById("tarifFormAlani").classList.remove("hidden");
+}
+}
+function kapat(id) {
+document.getElementById(id).classList.add("hidden");
+}
+function sifreBak() {
+var sifre = document.getElementById("sifreInput").value;
+if (sifre === MUTFAK_SIFRESI) {
+girisYapildi = true;
+sessionStorage.setItem("mutfak_giris", "true");
+document.getElementById("sifreEkrani").classList.add("hidden");
+document.getElementById("tarifFormAlani").classList.remove("hidden");
+document.getElementById("sifreHata").classList.add("hidden");
+} else {
+document.getElementById("sifreHata").classList.remove("hidden");
+}
+}
+function katSec(kat) {
+aktifKategori = kat;
+var btns = document.querySelectorAll(".kat-btn");
+for (var i = 0; i < btns.length; i++) {
+btns.item(i).classList.toggle("active", btns.item(i).getAttribute("data-kat") === kat);
+}
+tarifleriCiz();
+}
+function resimKucult(file) {
+return new Promise(function(resolve) {
+var reader = new FileReader();
+reader.readAsDataURL(file);
+reader.onload = function(event) {
+var img = new Image();
+img.src = event.target.result;
+img.onload = function() {
+var canvas = document.createElement("canvas");
+var oran = Math.min(1, 900 / img.width);
+canvas.width = img.width * oran;
+canvas.height = img.height * oran;
+canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+canvas.toBlob(function(blob) { resolve(blob); }, "image/jpeg", 0.8);
+};
+};
+});
+}
+async function tarifleriGetir() {
+var yukleniyor = document.getElementById("yukleniyor");
+try {
+var res = await fetch(API_URL + "/rest/v1/tarifler?select=*&order=created_at.desc", {
+headers: { "apikey": API_KEY, "Authorization": "Bearer " + API_KEY }
+});
+if (!res.ok) throw new Error("Sunucu hatası: " + res.status);
+var data = await res.json();
+yukleniyor.classList.add("hidden");
+tumTarifler = data || new Array();
+tarifleriCiz();
+} catch (err) {
+yukleniyor.classList.remove("hidden");
+yukleniyor.innerText = "Bağlantı sorunu: " + err.message;
+}
+}
+function tarifleriCiz() {
+var arama = document.getElementById("aramaInput").value.toLowerCase().trim();
+var grid = document.getElementById("tarifGrid");
+var bosMesaj = document.getElementById("bosMesaj");
+var filtrelenen = tumTarifler.filter(function(t) {
+var katUygun = aktifKategori === "Tümü" || t.kategori === aktifKategori;
+var aramaUygun = !arama || t.baslik.toLowerCase().indexOf(arama) > -1 || t.malzemeler.toLowerCase().indexOf(arama) > -1;
+return katUygun && aramaUygun;
+});
+grid.innerHTML = "";
+if (filtrelenen.length === 0) {
+bosMesaj.classList.remove("hidden");
+return;
+}
+bosMesaj.classList.add("hidden");
+filtrelenen.forEach(function(t) {
+var kart = document.createElement("article");
+kart.className = "card";
+kart.onclick = function() { detayAc(t.id); };
+kart.innerHTML =
+'<div class="card-img-wrap">' +
+'<img src="' + (t.resim_url || YEDEK_RESIM) + '" alt="' + t.baslik + '" loading="lazy" />' +
+'<span class="badge">' + t.kategori + '</span>' +
+'</div>' +
+'<div class="card-body">' +
+'<div>' +
+'<h3 class="card-title">' + t.baslik + '</h3>' +
+'<p class="card-desc">' + t.malzemeler.replace(/\n/g, ", ") + '</p>' +
+'</div>' +
+'<div class="card-meta">' +
+'<span>⏱️ ' + (t.hazirlama_suresi || "Belirtilmedi") + '</span>' +
+'<span>🍽️ ' + (t.porsiyon || "Tam Ölçü") + '</span>' +
+'</div>' +
+'</div>';
+grid.appendChild(kart);
+});
+}
+function detayAc(id) {
+var t = tumTarifler.find(function(x) { return x.id === id; });
+if (!t) return;
+var malzemeListesi = t.malzemeler.split("\n").filter(function(m) { return m.trim() !== ""; }).map(function(m) {
+return '<label class="malzeme-item"><input type="checkbox" /><span>' + m + '</span></label>';
+}).join("");
+var yapilisAdimlari = t.yapilis.split("\n").filter(function(y) { return y.trim() !== ""; }).map(function(y, idx) {
+return '<div class="adim-item"><span class="adim-no">' + (idx + 1) + '</span><p>' + y + '</p></div>';
+}).join("");
+var silButonu = girisYapildi
+? '<div style="margin-top:20px; border-top:1px solid #eee; padding-top:12px; text-align:right;"><button type="button" onclick="tarifSil('' + t.id + '')" style="color:#DC2626; background:none; border:none; font-weight:600; cursor:pointer; font-size:12px;">Bu Tarifi Sil</button></div>'
+: "";
+document.getElementById("detayIcerik").innerHTML =
+'<img src="' + (t.resim_url || YEDEK_RESIM) + '" alt="' + t.baslik + '" class="detay-hero" />' +
+'<div class="modal-pad">' +
+'<span style="font-size: 12px; font-weight: 700; color: var(--amber-dark); text-transform: uppercase;">' + t.kategori + '</span>' +
+'<h2 style="font-size: 26px; margin-top: 4px;">' + t.baslik + '</h2>' +
+'<div class="detay-badges">' +
+'<span>⏱️ <strong>Süre:</strong> ' + (t.hazirlama_suresi || "-") + '</span>' +
+'<span>🍽️ <strong>Porsiyon:</strong> ' + (t.porsiyon || "-") + '</span>' +
+'</div>' +
+'<h3 style="font-size: 18px; margin-bottom: 10px;">Malzemeler</h3>' +
+'<div style="margin-bottom: 24px;">' + malzemeListesi + '</div>' +
+'<h3 style="font-size: 18px; margin-bottom: 12px;">Hazırlanışı</h3>' +
+'<div>' + yapilisAdimlari + '</div>' +
+silButonu +
+'</div>';
+document.getElementById("detayModal").classList.remove("hidden");
+}
+async function tarifKaydet() {
+var baslik = document.getElementById("baslik").value.trim();
+var malzemeler = document.getElementById("malzemeler").value.trim();
+var yapilis = document.getElementById("yapilis").value.trim();
+if (!baslik || !malzemeler || !yapilis) {
+alert("Lütfen Tarif Adı, Malzemeler ve Yapılışı alanlarını doldurun.");
+return;
+}
+var btn = document.getElementById("kaydetBtn");
+btn.disabled = true;
+btn.innerText = "Yükleniyor...";
+try {
+var resimUrl = null;
+var dosyaInput = document.getElementById("resimDosya");
+if (dosyaInput.files && dosyaInput.files.length > 0) {
+var kucukResim = await resimKucult(dosyaInput.files.item(0));
+var dosyaAdi = Date.now() + ".jpg";
+var uploadRes = await fetch(API_URL + "/storage/v1/object/tarif-resimleri/" + dosyaAdi, {
+method: "POST",
+headers: {
+"apikey": API_KEY,
+"Authorization": "Bearer " + API_KEY,
+"Content-Type": "image/jpeg"
+},
+body: kucukResim
+});
+if (!uploadRes.ok) throw new Error("Fotoğraf yüklenemedi.");
+resimUrl = API_URL + "/storage/v1/object/public/tarif-resimleri/" + dosyaAdi;
+}
+var yeniKayit = {
+baslik: baslik,
+kategori: document.getElementById("kategori").value,
+hazirlama_suresi: document.getElementById("sure").value.trim(),
+porsiyon: document.getElementById("porsiyon").value.trim(),
+malzemeler: malzemeler,
+yapilis: yapilis,
+resim_url: resimUrl
+};
+var insertRes = await fetch(API_URL + "/rest/v1/tarifler", {
+method: "POST",
+headers: {
+"apikey": API_KEY,
+"Authorization": "Bearer " + API_KEY,
+"Content-Type": "application/json"
+},
+body: JSON.stringify(yeniKayit)
+});
+if (!insertRes.ok) throw new Error("Tarif kaydedilemedi.");
+document.getElementById("baslik").value = "";
+document.getElementById("sure").value = "";
+document.getElementById("porsiyon").value = "";
+document.getElementById("malzemeler").value = "";
+document.getElementById("yapilis").value = "";
+document.getElementById("resimDosya").value = "";
+kapat("ekleModal");
+await tarifleriGetir();
+alert("Tarif başarıyla yayınlandı!");
+} catch (err) {
+alert("Hata oluştu: " + err.message);
+} finally {
+btn.disabled = false;
+btn.innerText = "Tarifi Yayınla";
+}
+}
+async function tarifSil(id) {
+if (!confirm("Bu tarifi silmek istediğinize emin misiniz?")) return;
+var res = await fetch(API_URL + "/rest/v1/tarifler?id=eq." + id, {
+method: "DELETE",
+headers: { "apikey": API_KEY, "Authorization": "Bearer " + API_KEY }
+});
+if (res.ok) {
+kapat("detayModal");
+tarifleriGetir();
+}
+}
+tarifleriGetir();
+</script>
+</body>
+</html>
