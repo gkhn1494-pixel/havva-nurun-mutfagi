@@ -46,6 +46,13 @@ main{flex:1;padding:24px 0 40px}
 .malzeme-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F5F5F4;font-size:15px}
 .malzeme-item input{width:18px;height:18px;accent-color:var(--amber)}
 .malzeme-item input:checked+span{text-decoration:line-through;color:var(--muted)}
+.porsiyon-hesap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:12px;border:1px solid var(--border);border-radius:12px;background:#FFFBEB}.porsiyon-kontrol{display:flex;align-items:center;gap:8px}.porsiyon-kontrol button{width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:#fff;font-size:18px}.porsiyon-kontrol input{width:58px;padding:7px;border:1px solid var(--border);border-radius:8px;text-align:center;font-weight:700}
+.detay-actions{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 22px}
+.btn-soft{border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--text);padding:8px 13px;font-size:13px;font-weight:650}
+.btn-soft:hover{background:var(--bg)}
+.preview-wrap{display:flex;align-items:center;gap:12px;margin:8px 0 14px}
+.preview-wrap img{width:84px;height:70px;object-fit:cover;border-radius:10px;border:1px solid var(--border)}
+.preview-wrap span{font-size:12px;color:var(--muted)}
 .adim-item{display:flex;gap:12px;margin-bottom:13px;font-size:15px}
 .adim-no{flex:0 0 26px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--amber-light);color:var(--amber-dark);font-weight:700;font-size:12px}
 footer{padding:20px;text-align:center;border-top:1px solid var(--border);background:#fff;color:var(--muted);font-size:12px}
@@ -70,6 +77,7 @@ footer{padding:20px;text-align:center;border-top:1px solid var(--border);backgro
     <button class="kat-btn" data-kat="İçecek" onclick="katSec('İçecek')">🍹 İçecek</button>
     <button class="kat-btn" data-kat="Hamur İşi & Kahvaltı" onclick="katSec('Hamur İşi & Kahvaltı')">🥐 Hamur İşi</button>
     <button class="kat-btn" data-kat="Salata & Meze" onclick="katSec('Salata & Meze')">🥗 Salata & Meze</button>
+    <button class="kat-btn" data-kat="Favorilerim" onclick="katSec('Favorilerim')">⭐ Favorilerim</button>
   </div>
 </section>
 <main>
@@ -99,9 +107,11 @@ footer{padding:20px;text-align:center;border-top:1px solid var(--border);backgro
         <div class="form-group"><label>Kategori</label><select id="kategori" class="form-control"><option>Ana Yemek</option><option>Tatlı</option><option>İçecek</option><option>Hamur İşi & Kahvaltı</option><option>Salata & Meze</option></select></div>
         <div class="form-group"><label>Yemek Fotoğrafı</label><input id="resimDosya" type="file" accept="image/*" class="form-control"></div>
       </div>
+      <div id="mevcutResimAlani" class="preview-wrap hidden"><img id="mevcutResimOnizleme" alt="Mevcut tarif fotoğrafı"><span>Mevcut fotoğraf. Yeni fotoğraf seçerek değiştirebilirsiniz.</span></div>
+      <label id="resimSilAlani" class="hidden" style="font-size:13px;color:var(--muted);margin:-4px 0 14px;display:block"><input id="resimSil" type="checkbox"> Mevcut fotoğrafı kaldır</label>
       <div class="row-2">
         <div class="form-group"><label>Hazırlama Süresi</label><input id="sure" class="form-control" placeholder="Örn: 40 dk"></div>
-        <div class="form-group"><label>Kaç Kişilik</label><input id="porsiyon" class="form-control" placeholder="Örn: 4-6 kişilik"></div>
+        <div class="form-group"><label>Kaç Kişilik? *</label><input id="porsiyon" type="number" min="1" max="100" step="1" required class="form-control" placeholder="Örn: 4"><small style="color:var(--muted)">Tarifin orijinal kişi sayısı zorunludur.</small></div>
       </div>
       <div class="form-group"><label>Malzemeler (Her satıra bir malzeme) *</label><textarea id="malzemeler" rows="4" class="form-control" placeholder="1 litre süt"></textarea></div>
       <div class="form-group"><label>Yapılışı (Her adımı yeni satıra yazın) *</label><textarea id="yapilis" rows="5" class="form-control" placeholder="Pirinçleri haşlayın..."></textarea></div>
@@ -112,6 +122,14 @@ footer{padding:20px;text-align:center;border-top:1px solid var(--border);backgro
 
 <script>
 /*
+  GELİŞTİRMELER:
+  - Tarif düzenleme: başlık, kategori, süre, porsiyon, malzeme ve yapılış alanlarını güncelleme.
+  - Sonradan fotoğraf ekleme/değiştirme veya fotoğrafı kaldırma.
+  - Favoriler tarayıcıda saklanır; farklı cihazlar arasında senkronize olmaz.
+  - Malzemeleri kopyalama ve tarifi paylaşma.
+  - Zorunlu kişi sayısı ve tarif detayında otomatik malzeme miktarı ölçekleme.
+  - Miktar ölçekleme, satır başındaki sayısal miktarları (ondalık ve kesirler dahil) hesaplar; ölçüsüz metinleri aynen bırakır.
+
   SUPABASE AYARLARI
   Bu değerler mevcut GitHub kodundaki proje bilgileriyle bırakılmıştır.
   Supabase tarafındaki tablo, sütunlar, Storage bucket ve RLS politikaları da
@@ -127,6 +145,9 @@ const YEDEK_RESIM = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
 );
 let tumTarifler = [];
 let aktifKategori = "Tümü";
+let duzenlenenTarifId = null;
+let mevcutResimUrl = null;
+let favoriIds = new Set(JSON.parse(localStorage.getItem("mutfak_favorileri") || "[]").map(String));
 let girisYapildi = sessionStorage.getItem("mutfak_giris") === "true";
 
 function headers(extra={}) {
@@ -134,6 +155,7 @@ function headers(extra={}) {
 }
 function kapat(id){ document.getElementById(id).classList.add("hidden"); }
 function ekleAc(){
+  formuSifirla();
   document.getElementById("ekleModal").classList.remove("hidden");
   if(girisYapildi){
     document.getElementById("sifreEkrani").classList.add("hidden");
@@ -166,8 +188,8 @@ function tarifleriCiz(){
   const hata = document.getElementById("hataMesaj");
   hata.classList.add("hidden");
   const filtre = tumTarifler.filter(t => {
-    const kategoriUygun = aktifKategori==="Tümü" || t.kategori===aktifKategori;
-    const metin = `${t.baslik||""} ${t.malzemeler||""}`.toLocaleLowerCase("tr");
+    const kategoriUygun = aktifKategori==="Tümü" || (aktifKategori==="Favorilerim" ? favoriIds.has(String(t.id)) : t.kategori===aktifKategori);
+    const metin = `${t.baslik||""} ${t.malzemeler||""} ${t.yapilis||""}`.toLocaleLowerCase("tr");
     return kategoriUygun && (!arama || metin.includes(arama));
   });
   grid.innerHTML = "";
@@ -192,7 +214,7 @@ function tarifleriCiz(){
     info.append(title,desc);
     const meta = document.createElement("div"); meta.className="card-meta";
     const time=document.createElement("span"); time.textContent="⏱️ "+(t.hazirlama_suresi||"Belirtilmedi");
-    const portion=document.createElement("span"); portion.textContent="🍽️ "+(t.porsiyon||"Belirtilmedi");
+    const portion=document.createElement("span"); portion.textContent="🍽️ "+(t.porsiyon?`${t.porsiyon} kişilik`:"Kişi sayısı yok");
     meta.append(time,portion); body.append(info,meta); kart.append(img,body); grid.appendChild(kart);
   });
 }
@@ -224,16 +246,115 @@ function detayAc(id){
   const pad=document.createElement("div"); pad.className="modal-pad";
   const cat=document.createElement("div"); cat.style.cssText="font-size:12px;font-weight:700;color:var(--amber-dark);text-transform:uppercase"; cat.textContent=t.kategori||"";
   const title=document.createElement("h2"); title.style.cssText="font-size:26px;margin:4px 0"; title.textContent=t.baslik||"";
-  const badges=document.createElement("div"); badges.className="detay-badges"; badges.textContent=`⏱️ Süre: ${t.hazirlama_suresi||"-"}     🍽️ Porsiyon: ${t.porsiyon||"-"}`;
+  const badges=document.createElement("div"); badges.className="detay-badges"; badges.textContent=`⏱️ Süre: ${t.hazirlama_suresi||"-"}     🍽️ Orijinal tarif: ${bazKisi} kişilik`;
+  const bazKisi=Math.max(1,parseInt(String(t.porsiyon||"1").match(/\d+/)?.[0]||"1",10));
+  let seciliKisi=bazKisi;
   const mh=document.createElement("h3"); mh.textContent="Malzemeler";
+  const porsiyonPanel=document.createElement("div"); porsiyonPanel.className="porsiyon-hesap";
+  const porsiyonBilgi=document.createElement("strong"); porsiyonBilgi.textContent=`Orijinal tarif: ${bazKisi} kişilik`;
+  const kontrol=document.createElement("div"); kontrol.className="porsiyon-kontrol";
+  const azalt=document.createElement("button"); azalt.type="button"; azalt.textContent="−"; azalt.setAttribute("aria-label","Kişi sayısını azalt");
+  const kisiInput=document.createElement("input"); kisiInput.type="number"; kisiInput.min="1"; kisiInput.max="100"; kisiInput.step="1"; kisiInput.value=String(bazKisi); kisiInput.setAttribute("aria-label","Hesaplanacak kişi sayısı");
+  const artir=document.createElement("button"); artir.type="button"; artir.textContent="+"; artir.setAttribute("aria-label","Kişi sayısını artır");
+  const kisiEtiket=document.createElement("span"); kisiEtiket.textContent="kişilik";
+  kontrol.append(azalt,kisiInput,artir,kisiEtiket); porsiyonPanel.append(porsiyonBilgi,kontrol);
   const ml=document.createElement("div"); ml.style.marginBottom="24px";
-  malzemeler.forEach(m=>{const label=document.createElement("label");label.className="malzeme-item";const cb=document.createElement("input");cb.type="checkbox";const span=document.createElement("span");span.textContent=m;label.append(cb,span);ml.appendChild(label)});
+  const miktarCoz=(line)=>{
+    const match=line.match(/^(\s*)(\d+\s+\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?)(?=\s|$)(.*)$/);
+    if(!match)return line;
+    let miktarText=match[2].trim(), miktar=0;
+    if(/^\d+\s+\d+\s*\/\s*\d+$/.test(miktarText)){const a=miktarText.match(/(\d+)\s+(\d+)\s*\/\s*(\d+)/);miktar=Number(a[1])+Number(a[2])/Number(a[3]);}
+    else if(miktarText.includes("/")){const a=miktarText.match(/(\d+)\s*\/\s*(\d+)/);miktar=Number(a[1])/Number(a[2]);}
+    else miktar=Number(miktarText.replace(",","."));
+    if(!Number.isFinite(miktar))return line;
+    const sonuc=miktar*seciliKisi/bazKisi;
+    const fmt=new Intl.NumberFormat("tr-TR",{maximumFractionDigits:2}).format(sonuc);
+    return match[1]+fmt+match[3];
+  };
+  const malzemeleriGuncelle=()=>{
+    seciliKisi=Math.max(1,Math.min(100,parseInt(kisiInput.value||String(bazKisi),10)));
+    kisiInput.value=String(seciliKisi);
+    ml.innerHTML="";
+    malzemeler.forEach(m=>{const label=document.createElement("label");label.className="malzeme-item";const cb=document.createElement("input");cb.type="checkbox";const span=document.createElement("span");span.textContent=miktarCoz(m);label.append(cb,span);ml.appendChild(label)});
+  };
+  azalt.onclick=()=>{kisiInput.value=String(Math.max(1,seciliKisi-1));malzemeleriGuncelle()};
+  artir.onclick=()=>{kisiInput.value=String(Math.min(100,seciliKisi+1));malzemeleriGuncelle()};
+  kisiInput.onchange=malzemeleriGuncelle;
+  malzemeleriGuncelle();
   const yh=document.createElement("h3"); yh.textContent="Hazırlanışı"; yh.style.marginBottom="12px";
   const ys=document.createElement("div");
   adimlar.forEach((a,i)=>{const row=document.createElement("div");row.className="adim-item";const no=document.createElement("span");no.className="adim-no";no.textContent=i+1;const p=document.createElement("p");p.textContent=a;row.append(no,p);ys.appendChild(row)});
-  pad.append(cat,title,badges,mh,ml,yh,ys);
-  if(girisYapildi){const del=document.createElement("button");del.textContent="Bu Tarifi Sil";del.style.cssText="margin-top:20px;color:#DC2626;background:none;border:0;font-weight:700";del.onclick=()=>tarifSil(t.id);pad.appendChild(del)}
+  const actions=document.createElement("div"); actions.className="detay-actions";
+  const fav=document.createElement("button"); fav.className="btn-soft";
+  fav.textContent=favoriIds.has(String(t.id))?"⭐ Favorilerden çıkar":"☆ Favorilere ekle";
+  fav.onclick=()=>favoriDegistir(t.id);
+  const copy=document.createElement("button"); copy.className="btn-soft"; copy.textContent="📋 Malzemeleri kopyala";
+  copy.onclick=()=>metinKopyala(malzemeler.join("\\n"));
+  const share=document.createElement("button"); share.className="btn-soft"; share.textContent="↗ Tarifi paylaş";
+  share.onclick=()=>tarifPaylas(t);
+  actions.append(fav,copy,share);
+  pad.append(cat,title,badges,actions,mh,porsiyonPanel,ml,yh,ys);
+  if(girisYapildi){
+    const adminActions=document.createElement("div"); adminActions.className="detay-actions";
+    const edit=document.createElement("button"); edit.className="btn-primary"; edit.textContent="✏️ Tarifi düzenle";
+    edit.onclick=()=>tarifDuzenle(t.id);
+    const del=document.createElement("button"); del.className="btn-soft"; del.style.color="#DC2626"; del.textContent="🗑 Tarifi sil";
+    del.onclick=()=>tarifSil(t.id);
+    adminActions.append(edit,del); pad.appendChild(adminActions);
+  }
   modal.append(img,pad); document.getElementById("detayModal").classList.remove("hidden");
+}
+function favoriDegistir(id){
+  const key=String(id);
+  if(favoriIds.has(key)) favoriIds.delete(key); else favoriIds.add(key);
+  localStorage.setItem("mutfak_favorileri",JSON.stringify([...favoriIds]));
+  tarifleriCiz();
+  detayAc(id);
+}
+async function metinKopyala(text){
+  try{await navigator.clipboard.writeText(text);alert("Malzemeler panoya kopyalandı.");}
+  catch(err){alert("Kopyalama desteklenmiyor. Malzemeleri seçip kopyalayabilirsiniz.");}
+}
+async function tarifPaylas(t){
+  const text=`${t.baslik}\\n\\nMalzemeler:\\n${t.malzemeler||""}\\n\\nHazırlanışı:\\n${t.yapilis||""}\\n\\nHavva Nur'un Mutfağı`;
+  try{
+    if(navigator.share) await navigator.share({title:t.baslik,text});
+    else {await navigator.clipboard.writeText(text);alert("Tarif paylaşım metni panoya kopyalandı.");}
+  }catch(err){if(err.name!=="AbortError") alert("Tarif paylaşılamadı.");}
+}
+function tarifDuzenle(id){
+  if(!girisYapildi){alert("Tarifi düzenlemek için önce giriş yapmalısınız.");return}
+  const t=tumTarifler.find(x=>String(x.id)===String(id)); if(!t)return;
+  duzenlenenTarifId=t.id; mevcutResimUrl=t.resim_url||null;
+  document.getElementById("baslik").value=t.baslik||"";
+  document.getElementById("kategori").value=t.kategori||"Ana Yemek";
+  document.getElementById("sure").value=t.hazirlama_suresi||"";
+  document.getElementById("porsiyon").value=parseInt(String(t.porsiyon||"").match(/\d+/)?.[0]||"",10)||"";
+  document.getElementById("malzemeler").value=t.malzemeler||"";
+  document.getElementById("yapilis").value=t.yapilis||"";
+  document.getElementById("resimDosya").value="";
+  document.getElementById("resimSil").checked=false;
+  const preview=document.getElementById("mevcutResimAlani");
+  const remove=document.getElementById("resimSilAlani");
+  if(mevcutResimUrl){
+    document.getElementById("mevcutResimOnizleme").src=mevcutResimUrl;
+    preview.classList.remove("hidden"); remove.classList.remove("hidden");
+  }else{preview.classList.add("hidden");remove.classList.add("hidden")}
+  document.querySelector("#ekleModal h3").textContent="Tarifi Düzenle";
+  document.getElementById("kaydetBtn").textContent="Değişiklikleri Kaydet";
+  document.getElementById("sifreEkrani").classList.add("hidden");
+  document.getElementById("tarifFormAlani").classList.remove("hidden");
+  kapat("detayModal");
+  document.getElementById("ekleModal").classList.remove("hidden");
+}
+function formuSifirla(){
+  duzenlenenTarifId=null; mevcutResimUrl=null;
+  ["baslik","sure","porsiyon","malzemeler","yapilis","resimDosya"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("resimSil").checked=false;
+  document.getElementById("mevcutResimAlani").classList.add("hidden");
+  document.getElementById("resimSilAlani").classList.add("hidden");
+  document.querySelector("#ekleModal h3").textContent="Yeni Tarif Ekle";
+  document.getElementById("kaydetBtn").textContent="Tarifi Yayınla";
 }
 function resimKucult(file){
   return new Promise((resolve,reject)=>{
@@ -260,11 +381,14 @@ async function tarifKaydet(){
   const baslik=document.getElementById("baslik").value.trim();
   const malzemeler=document.getElementById("malzemeler").value.trim();
   const yapilis=document.getElementById("yapilis").value.trim();
+  const porsiyon=Number(document.getElementById("porsiyon").value);
   if(!baslik||!malzemeler||!yapilis){alert("Lütfen Tarif Adı, Malzemeler ve Yapılışı alanlarını doldurun.");return}
+  if(!Number.isInteger(porsiyon)||porsiyon<1||porsiyon>100){alert("Lütfen tarifin kaç kişilik olduğunu 1-100 arasında tam sayı olarak girin.");document.getElementById("porsiyon").focus();return}
   const btn=document.getElementById("kaydetBtn"); btn.disabled=true; btn.textContent="Kaydediliyor...";
   try{
-    let resimUrl=null;
+    let resimUrl=mevcutResimUrl;
     const file=document.getElementById("resimDosya").files[0];
+    const fotoSilinecek=document.getElementById("resimSil").checked;
     if(file){
       if(!file.type.startsWith("image/")) throw new Error("Lütfen bir görsel dosyası seçin.");
       const blob=await resimKucult(file);
@@ -274,32 +398,39 @@ async function tarifKaydet(){
       });
       if(!upload.ok) throw new Error("Fotoğraf yüklenemedi: "+await upload.text());
       resimUrl=`${API_URL}/storage/v1/object/public/tarif-resimleri/${fileName}`;
-    }
+    }else if(fotoSilinecek){resimUrl=null}
     const payload={
       baslik,
       kategori:document.getElementById("kategori").value,
       hazirlama_suresi:document.getElementById("sure").value.trim(),
-      porsiyon:document.getElementById("porsiyon").value.trim(),
+      porsiyon:String(porsiyon),
       malzemeler,yapilis,resim_url:resimUrl
     };
-    const response=await fetch(`${API_URL}/rest/v1/tarifler`,{
-      method:"POST",
+    const duzenleme=duzenlenenTarifId!==null;
+    const endpoint=duzenleme
+      ? `${API_URL}/rest/v1/tarifler?id=eq.${encodeURIComponent(duzenlenenTarifId)}`
+      : `${API_URL}/rest/v1/tarifler`;
+    const response=await fetch(endpoint,{
+      method:duzenleme?"PATCH":"POST",
       headers:headers({"Content-Type":"application/json","Prefer":"return=representation"}),
       body:JSON.stringify(payload)
     });
-    if(!response.ok) throw new Error("Tarif kaydedilemedi: "+await response.text());
-    ["baslik","sure","porsiyon","malzemeler","yapilis","resimDosya"].forEach(id=>document.getElementById(id).value="");
+    if(!response.ok) throw new Error((duzenleme?"Değişiklikler kaydedilemedi: ":"Tarif kaydedilemedi: ")+await response.text());
+    const result=await response.json();
+    if(duzenleme && Array.isArray(result) && result.length===0) throw new Error("Tarif güncellenmedi. Supabase UPDATE izinlerini kontrol edin.");
     kapat("ekleModal");
+    formuSifirla();
     await tarifleriGetir();
-    alert("Tarif başarıyla kaydedildi.");
+    alert(duzenleme?"Tarif başarıyla güncellendi.":"Tarif başarıyla kaydedildi.");
   }catch(err){alert("Kayıt sırasında hata: "+err.message)}
-  finally{btn.disabled=false;btn.textContent="Tarifi Yayınla"}
+  finally{btn.disabled=false;btn.textContent=duzenlenenTarifId!==null?"Değişiklikleri Kaydet":"Tarifi Yayınla"}
 }
 async function tarifSil(id){
   if(!confirm("Bu tarifi silmek istediğinize emin misiniz?"))return;
   try{
     const response=await fetch(`${API_URL}/rest/v1/tarifler?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:headers({"Prefer":"return=minimal"})});
     if(!response.ok) throw new Error(await response.text());
+    favoriIds.delete(String(id)); localStorage.setItem("mutfak_favorileri",JSON.stringify([...favoriIds]));
     kapat("detayModal"); await tarifleriGetir();
   }catch(err){alert("Tarif silinemedi: "+err.message)}
 }
