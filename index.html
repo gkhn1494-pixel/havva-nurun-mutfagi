@@ -4,23 +4,38 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Havva Nur'un Mutfağı</title>
-  <link rel="preconnect" href="https://googleapis.com">
-  <link rel="preconnect" href="https://gstatic.com" crossorigin>
-  <link href="https://googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://jsdelivr.net"></script>
   <style>
-    :root { --bg: #FAF7F2; --card: #FFFFFF; --text: #2D2A26; --muted: #6E685F; --amber: #D97706; --amber-dark: #B45309; --amber-light: #FEF3C7; --border: #E7E5E4; }
+    :root {
+      --bg: #FAF7F2;
+      --card: #FFFFFF;
+      --text: #2D2A26;
+      --muted: #6E685F;
+      --amber: #D97706;
+      --amber-dark: #B45309;
+      --amber-light: #FEF3C7;
+      --border: #E7E5E4;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; line-height: 1.5; }
-    h1, h2, h3 { font-family: 'Playfair Display', serif; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+    h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; }
     .container { max-width: 1120px; margin: 0 auto; padding: 0 16px; width: 100%; }
-    header { background: rgba(255, 255, 255, 0.95); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
+    header { background: rgba(255, 255, 255, 0.96); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
     .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; max-width: 1120px; margin: 0 auto; }
     .logo { display: flex; align-items: center; gap: 12px; cursor: pointer; }
     .logo-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--amber); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; }
     .logo h1 { font-size: 20px; color: var(--text); }
     .logo p { font-size: 12px; color: var(--muted); }
     .btn-primary { background: var(--amber); color: #fff; border: none; padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .btn-primary:hover { background: var(--amber-dark); }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
     .hero { background: linear-gradient(135deg, #FFFBEB 0%, #FFEDD5 100%); border: 1px solid #FDE68A; border-radius: 24px; padding: 32px 20px; text-align: center; margin-top: 24px; }
     .hero h2 { font-size: 28px; margin-bottom: 8px; }
@@ -61,16 +76,17 @@
   </style>
 </head>
 <body>
+
   <header>
     <div class="header-inner">
-      <div class="logo" onclick="filtrele('Tümü')">
+      <div class="logo" id="logoBtn">
         <div class="logo-icon">🍲</div>
         <div>
           <h1>Havva Nur'un Mutfağı</h1>
           <p>Ev yapımı lezzetler ve özel tarifler</p>
         </div>
       </div>
-      <button onclick="eklemeModaliAc()" class="btn-primary">+ Tarif Ekle</button>
+      <button type="button" id="tarifEkleAcBtn" class="btn-primary">+ Tarif Ekle</button>
     </div>
   </header>
 
@@ -80,15 +96,15 @@
       <p>Denenmiş ev yemekleri, tam ölçülü tatlılar ve ferahlatıcı içecek tarifleri bir arada.</p>
       <div class="search-box">
         <span>🔍</span>
-        <input type="text" id="aramaInput" onkeyup="tarifleriCiz()" placeholder="Tarif veya malzeme ara..." />
+        <input type="text" id="aramaInput" placeholder="Tarif veya malzeme ara..." />
       </div>
-      <div class="categories">
-        <button onclick="filtrele('Tümü')" data-kat="Tümü" class="kat-btn active">Tümü</button>
-        <button onclick="filtrele('Ana Yemek')" data-kat="Ana Yemek" class="kat-btn">🍲 Ana Yemek</button>
-        <button onclick="filtrele('Tatlı')" data-kat="Tatlı" class="kat-btn">🍰 Tatlı</button>
-        <button onclick="filtrele('İçecek')" data-kat="İçecek" class="kat-btn">🍹 İçecek</button>
-        <button onclick="filtrele('Hamur İşi & Kahvaltı')" data-kat="Hamur İşi & Kahvaltı" class="kat-btn">🥐 Hamur İşi</button>
-        <button onclick="filtrele('Salata & Meze')" data-kat="Salata & Meze" class="kat-btn">🥗 Salata & Meze</button>
+      <div class="categories" id="kategoriListesi">
+        <button type="button" data-kat="Tümü" class="kat-btn active">Tümü</button>
+        <button type="button" data-kat="Ana Yemek" class="kat-btn">🍲 Ana Yemek</button>
+        <button type="button" data-kat="Tatlı" class="kat-btn">🍰 Tatlı</button>
+        <button type="button" data-kat="İçecek" class="kat-btn">🍹 İçecek</button>
+        <button type="button" data-kat="Hamur İşi & Kahvaltı" class="kat-btn">🥐 Hamur İşi</button>
+        <button type="button" data-kat="Salata & Meze" class="kat-btn">🥗 Salata & Meze</button>
       </div>
     </section>
 
@@ -105,16 +121,16 @@
 
   <footer>© 2026 Havva Nur'un Mutfağı • Sevgiyle hazırlandı.</footer>
 
-  <div id="detayModal" class="modal-bg hidden" onclick="if(event.target===this) modalKapat('detayModal')">
+  <div id="detayModal" class="modal-bg hidden">
     <div class="modal">
-      <button onclick="modalKapat('detayModal')" class="modal-close">✕</button>
+      <button type="button" id="detayKapatBtn" class="modal-close">✕</button>
       <div id="detayIcerik"></div>
     </div>
   </div>
 
-  <div id="ekleModal" class="modal-bg hidden" onclick="if(event.target===this) modalKapat('ekleModal')">
+  <div id="ekleModal" class="modal-bg hidden">
     <div class="modal modal-pad">
-      <button onclick="modalKapat('ekleModal')" class="modal-close">✕</button>
+      <button type="button" id="ekleKapatBtn" class="modal-close">✕</button>
       <h3 style="font-size: 22px; margin-bottom: 16px;">Yeni Tarif Ekle</h3>
       
       <div id="sifreEkrani">
@@ -123,13 +139,13 @@
           <input type="password" id="sifreInput" placeholder="Şifreniz..." class="form-control" />
         </div>
         <p id="sifreHata" class="hidden" style="color: #DC2626; font-size: 12px; margin-bottom: 10px;">Hatalı şifre girdiniz.</p>
-        <button onclick="sifreKontrol()" class="btn-primary" style="width: 100%; border-radius: 12px; padding: 12px;">Giriş Yap</button>
+        <button type="button" id="girisYapBtn" class="btn-primary" style="width: 100%; border-radius: 12px; padding: 12px;">Giriş Yap</button>
       </div>
 
-      <form id="tarifForm" onsubmit="tarifKaydet(event)" class="hidden">
+      <div id="tarifFormAlani" class="hidden">
         <div class="form-group">
           <label>Tarif Adı *</label>
-          <input type="text" id="baslik" required placeholder="Örn: Fırında Sütlaç" class="form-control" />
+          <input type="text" id="baslik" placeholder="Örn: Fırında Sütlaç" class="form-control" />
         </div>
         <div class="row-2">
           <div class="form-group">
@@ -138,3 +154,10 @@
               <option value="Ana Yemek">Ana Yemek</option>
               <option value="Tatlı">Tatlı</option>
               <option value="İçecek">İçecek</option>
+              <option value="Hamur İşi & Kahvaltı">Hamur İşi & Kahvaltı</option>
+              <option value="Salata & Meze">Salata & Meze</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Yemek Fotoğrafı</label>
+            <input type="file" id="resimDosya" accept="image/*" class="form-control" style="padding: 7px;" />
